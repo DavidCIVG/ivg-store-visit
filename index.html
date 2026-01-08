@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1a1a1a">
     <title>IVG Store Visit</title>
     <style>
@@ -93,7 +93,6 @@
         .photo-preview { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
         .photo-remove { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; background: rgba(239,68,68,0.9); border: none; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-        .photo-status { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 4px; text-align: center; }
         .submit-section { position: sticky; bottom: 0; background: linear-gradient(to top, var(--bg-light) 80%, transparent); padding: 16px 0 24px; margin-top: 16px; }
         .submit-note { text-align: center; font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
         .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--ivg-black); color: white; padding: 14px 24px; border-radius: 12px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 1000; max-width: 90%; text-align: center; }
@@ -125,7 +124,7 @@
         .field-toggle.active { background: var(--success); }
         .field-toggle::after { content: ''; position: absolute; width: 24px; height: 24px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .field-toggle.active::after { left: 22px; }
-        .add-field-form { background: #f9f9f9; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .add-field-form { background: #f9f9f9; border-radius: 12px; padding: 20px; }
         .add-field-form h3 { margin: 0 0 16px 0; font-size: 16px; color: var(--ivg-red); }
         .form-row { margin-bottom: 14px; }
         .form-row label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
@@ -150,16 +149,13 @@
         .modal-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; }
         .offline-banner { background: #f59e0b; color: white; text-align: center; padding: 8px; font-size: 12px; display: none; }
         .offline-banner.show { display: block; }
-        .upload-progress { margin-top: 12px; padding: 12px; background: #eff6ff; border-radius: 8px; text-align: center; display: none; }
-        .upload-progress.show { display: block; }
-        .upload-progress .text { font-size: 13px; color: #2563eb; }
     </style>
 </head>
 <body>
-    <div class="offline-banner" id="offline-banner">⚠️ You're offline. Data will sync when connected.</div>
+    <div class="offline-banner" id="offline-banner">⚠️ Offline - data won't save</div>
     <div class="loading-overlay" id="loading-overlay">
         <div class="spinner"></div>
-        <div>Loading stores...</div>
+        <div>Loading...</div>
     </div>
     
     <header class="header">
@@ -175,133 +171,66 @@
     <div class="container">
         <div id="screen-select" class="screen active">
             <div class="stats-banner">
-                <div class="stat-card">
-                    <div class="number" id="total-stores">0</div>
-                    <div class="label">Stores</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="total-visits">0</div>
-                    <div class="label">Visits</div>
-                </div>
+                <div class="stat-card"><div class="number" id="total-stores">0</div><div class="label">Stores</div></div>
+                <div class="stat-card"><div class="number" id="total-visits">0</div><div class="label">Visits</div></div>
             </div>
             <div class="search-box">
                 <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
                 <input type="text" class="search-input" id="store-search" placeholder="Search stores...">
             </div>
             <div class="store-list" id="store-list"></div>
-            <button class="new-store-btn" onclick="startNewStore()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
-                Add New Store
-            </button>
+            <button class="new-store-btn" onclick="startNewStore()">+ Add New Store</button>
         </div>
         
         <div id="screen-form" class="screen">
-            <button class="back-btn" onclick="showScreen('select')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
-                Back
-            </button>
-            <div class="store-info-card" id="store-card" style="display: none;">
+            <button class="back-btn" onclick="showScreen('select')">← Back</button>
+            <div class="store-info-card" id="store-card" style="display:none;">
                 <span class="code" id="card-code"></span>
                 <h2 id="card-name"></h2>
                 <div class="details" id="card-details"></div>
-                <div class="visit-count">
-                    <span id="card-visit-count"></span>
-                    <span id="card-last-visit"></span>
-                </div>
+                <div class="visit-count"><span id="card-visit-count"></span><span id="card-last-visit"></span></div>
             </div>
-            <div class="visit-history" id="visit-history" style="display: none;">
-                <div class="history-header" onclick="toggleHistory()">
-                    <span>📅 Visit History</span>
-                    <span class="history-badge" id="history-count">0</span>
-                </div>
+            <div class="visit-history" id="visit-history" style="display:none;">
+                <div class="history-header" onclick="toggleHistory()"><span>📅 History</span><span class="history-badge" id="history-count">0</span></div>
                 <div class="history-list" id="history-list"></div>
             </div>
-            <div class="prefill-notice" id="prefill-notice" style="display: none;">
-                <span>✓</span>
-                <span>Pre-filled from last visit</span>
-            </div>
+            <div class="prefill-notice" id="prefill-notice" style="display:none;">✓ Pre-filled from last visit</div>
             <div id="form-sections-container"></div>
-            
-            <!-- Photo Section -->
             <div class="photo-section">
-                <div class="photo-header">
-                    <span>📸 Photos</span>
-                    <span class="photo-count-badge" id="photo-count-badge">0</span>
-                </div>
+                <div class="photo-header"><span>📸 Photos</span><span class="photo-count-badge" id="photo-count-badge">0</span></div>
                 <div class="photo-content">
                     <div class="photo-upload-area" onclick="document.getElementById('photo-input').click()">
                         <div class="icon">📷</div>
-                        <div class="text">Tap to take photo or choose from gallery</div>
-                        <div class="subtext">Photos will be uploaded to Google Drive</div>
+                        <div class="text">Tap to add photos</div>
                     </div>
                     <input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotos(this)">
                     <div class="photo-preview-grid" id="photo-previews"></div>
-                    <div class="upload-progress" id="upload-progress">
-                        <div class="spinner"></div>
-                        <div class="text">Uploading photos...</div>
-                    </div>
                 </div>
             </div>
-            
             <div class="submit-section">
-                <div class="submit-note" id="submit-note">This will create a new visit record</div>
-                <button class="submit-btn" id="submit-btn" onclick="submitVisit()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
-                    Submit Visit
-                </button>
+                <div class="submit-note" id="submit-note"></div>
+                <button class="submit-btn" id="submit-btn" onclick="submitVisit()">Submit Visit</button>
             </div>
         </div>
     </div>
     
     <div class="admin-overlay" id="admin-overlay" onclick="toggleAdmin()"></div>
     <div class="admin-panel" id="admin-panel">
-        <div class="admin-header">
-            <h2>Settings</h2>
-            <button class="admin-close" onclick="toggleAdmin()">✕</button>
-        </div>
+        <div class="admin-header"><h2>Settings</h2><button class="admin-close" onclick="toggleAdmin()">✕</button></div>
         <div class="admin-content">
             <div class="admin-tabs">
-                <button class="admin-tab active" onclick="showAdminTab('manage', this)">Fields</button>
-                <button class="admin-tab" onclick="showAdminTab('add', this)">Add</button>
+                <button class="admin-tab active" onclick="showAdminTab('manage',this)">Fields</button>
+                <button class="admin-tab" onclick="showAdminTab('add',this)">Add</button>
             </div>
-            <div id="admin-manage" class="admin-section active">
-                <div id="field-config-list"></div>
-            </div>
+            <div id="admin-manage" class="admin-section active"><div id="field-config-list"></div></div>
             <div id="admin-add" class="admin-section">
                 <div class="add-field-form">
-                    <h3>➕ New Field</h3>
-                    <div class="form-row">
-                        <label>Label</label>
-                        <input type="text" id="new-field-label" placeholder="e.g. Has New Product?">
-                    </div>
-                    <div class="form-row">
-                        <label>Type</label>
-                        <select id="new-field-type" onchange="toggleOptionsField()">
-                            <option value="text">Text</option>
-                            <option value="number">Number</option>
-                            <option value="yesno">Yes/No</option>
-                            <option value="select">Dropdown</option>
-                            <option value="multiselect">Multi-Select</option>
-                            <option value="textarea">Notes</option>
-                        </select>
-                    </div>
-                    <div class="form-row" id="options-row" style="display: none;">
-                        <label>Options (comma separated)</label>
-                        <input type="text" id="new-field-options" placeholder="A, B, C">
-                    </div>
-                    <div class="form-row">
-                        <label>Section</label>
-                        <select id="new-field-section">
-                            <option value="products">Products</option>
-                            <option value="gantry">Gantry</option>
-                            <option value="sales">Sales</option>
-                            <option value="orders">Orders</option>
-                            <option value="pos">POS</option>
-                            <option value="competitors">Competitors</option>
-                            <option value="notes">Notes</option>
-                        </select>
-                    </div>
-                    <button class="add-field-btn" onclick="addNewField()">Add Field</button>
+                    <h3>+ New Field</h3>
+                    <div class="form-row"><label>Label</label><input type="text" id="new-field-label"></div>
+                    <div class="form-row"><label>Type</label><select id="new-field-type" onchange="toggleOptionsField()"><option value="text">Text</option><option value="number">Number</option><option value="yesno">Yes/No</option><option value="select">Dropdown</option><option value="multiselect">Multi</option><option value="textarea">Notes</option></select></div>
+                    <div class="form-row" id="options-row" style="display:none;"><label>Options</label><input type="text" id="new-field-options" placeholder="A, B, C"></div>
+                    <div class="form-row"><label>Section</label><select id="new-field-section"><option value="products">Products</option><option value="gantry">Gantry</option><option value="sales">Sales</option><option value="orders">Orders</option><option value="pos">POS</option><option value="competitors">Competitors</option><option value="notes">Notes</option></select></div>
+                    <button class="add-field-btn" onclick="addNewField()">Add</button>
                 </div>
             </div>
         </div>
@@ -309,10 +238,7 @@
     
     <div class="modal-overlay" id="visit-modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Visit Details</h3>
-                <button class="modal-close" onclick="closeModal()">✕</button>
-            </div>
+            <div class="modal-header"><h3 id="modal-title">Visit</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
             <div class="modal-body" id="modal-body"></div>
         </div>
     </div>
@@ -320,18 +246,11 @@
     <div class="toast" id="toast"></div>
 
 <script>
-// ==================== CONFIGURATION ====================
-// PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
+// CONFIG - PUT YOUR URL HERE
 const API_URL = 'https://script.google.com/macros/s/AKfycbw2d7I-4vXphPa-rftpaqHGPfuqVmkQOemIEZv3NMOeYJdC4thuqGCFnFdsn86bfPOdjg/exec';
 
-// ==================== APP STATE ====================
-let currentStore = null;
-let isNewStore = false;
-let lastVisitData = null;
-let photos = []; // Array of {data: base64, status: 'pending'|'uploaded', url: ''}
-let formData = {};
-let stores = [];
-let visits = [];
+// STATE
+let currentStore = null, isNewStore = false, lastVisitData = null, photos = [], formData = {}, stores = [], visits = [];
 
 let fieldConfig = [
     { id: 'business_name', label: 'Business Name', type: 'text', section: 'business', required: true, active: true },
@@ -339,12 +258,12 @@ let fieldConfig = [
     { id: 'address', label: 'Address', type: 'text', section: 'business', required: true, active: true },
     { id: 'postcode', label: 'Post Code', type: 'text', section: 'business', required: false, active: true },
     { id: 'store_location', label: 'Town/Area', type: 'text', section: 'business', required: false, active: true },
-    { id: 'contact', label: 'Contact Name', type: 'text', section: 'business', required: false, active: true },
+    { id: 'contact', label: 'Contact', type: 'text', section: 'business', required: false, active: true },
     { id: 'phone', label: 'Phone', type: 'text', section: 'business', required: false, active: true },
     { id: 'email', label: 'Email', type: 'text', section: 'business', required: false, active: true },
     { id: 'main_supplier', label: 'Main Supplier', type: 'select', section: 'business', required: true, active: true, options: ['HALE','CLAYTON','E-CIRETTE','JFC','NEWVEND','CHINMARA','UK WHOLESALE','FLEMING','SMOKEGREEN','AMPERSAND','KADONA','OTHER'] },
     { id: 'has_ivg2400', label: 'Has IVG 2400?', type: 'yesno', section: 'products', required: true, active: true },
-    { id: 'ivg2400_sku', label: 'IVG 2400 SKU Count', type: 'number', section: 'products', required: false, active: true, showIf: { field: 'has_ivg2400', value: 'YES' } },
+    { id: 'ivg2400_sku', label: '2400 SKU Count', type: 'number', section: 'products', required: false, active: true, showIf: { field: 'has_ivg2400', value: 'YES' } },
     { id: 'has_smart5500', label: 'Has SMART 5500?', type: 'yesno', section: 'products', required: true, active: true },
     { id: 'has_pro12', label: 'Has PRO-12?', type: 'yesno', section: 'products', required: true, active: true },
     { id: 'has_savr', label: 'Has IVG SAVR?', type: 'yesno', section: 'products', required: true, active: true },
@@ -372,14 +291,14 @@ const sectionMeta = {
     notes: { icon: '📝', title: 'Notes', defaultOpen: true },
 };
 
-// ==================== API ====================
-async function apiGet(action, params = {}) {
-    if (!API_URL) return null;
-    const url = new URL(API_URL);
-    url.searchParams.append('action', action);
-    Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
+// API - Using GET with data parameter to avoid CORS
+async function apiCall(action, data = null) {
     try {
-        const r = await fetch(url.toString());
+        let url = API_URL + '?action=' + action;
+        if (data) {
+            url += '&data=' + encodeURIComponent(JSON.stringify(data));
+        }
+        const r = await fetch(url);
         return await r.json();
     } catch (e) {
         console.error('API Error:', e);
@@ -387,101 +306,62 @@ async function apiGet(action, params = {}) {
     }
 }
 
-async function apiPost(action, data) {
-    if (!API_URL) return { success: true, storeCode: 'IVG-IE-' + String(stores.length + 1).padStart(4, '0') };
-    const url = new URL(API_URL);
-    url.searchParams.append('action', action);
-    try {
-        const r = await fetch(url.toString(), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        return await r.json();
-    } catch (e) {
-        console.error('API Error:', e);
-        return null;
-    }
-}
-
-// ==================== INIT ====================
+// INIT
 document.addEventListener('DOMContentLoaded', async () => {
+    if (!navigator.onLine) document.getElementById('offline-banner').classList.add('show');
     window.addEventListener('online', () => document.getElementById('offline-banner').classList.remove('show'));
     window.addEventListener('offline', () => document.getElementById('offline-banner').classList.add('show'));
-    if (!navigator.onLine) document.getElementById('offline-banner').classList.add('show');
     await loadData();
     document.getElementById('loading-overlay').style.display = 'none';
     renderFieldConfigList();
 });
 
 async function loadData() {
-    if (API_URL) {
-        const [storesRes, visitsRes, statsRes] = await Promise.all([
-            apiGet('getStores'),
-            apiGet('getVisits'),
-            apiGet('getStats')
-        ]);
-        if (storesRes?.stores) stores = storesRes.stores;
-        if (visitsRes?.visits) visits = visitsRes.visits;
-        if (statsRes) {
-            document.getElementById('total-stores').textContent = statsRes.totalStores || 0;
-            document.getElementById('total-visits').textContent = statsRes.totalVisits || 0;
-        }
-    } else {
-        // Demo data
-        stores = [
-            { code: 'IVG-IE-0001', name: 'Eurospar', location: 'Carrickmacross', type: 'FMCG', contact: 'Aaron' },
-            { code: 'IVG-IE-0002', name: 'Supervalu', location: 'Tyrellstown', type: 'FMCG', contact: 'Karl' },
-        ];
-        visits = [
-            { store_code: 'IVG-IE-0001', timestamp: '2025-09-04T14:51:40', has_ivg2400: 'YES', gantry_share: '5', order_placed: 'NO', photo_count: 2, photo_links: 'https://drive.google.com/example1 | https://drive.google.com/example2' },
-        ];
-    }
+    const [storesRes, visitsRes, statsRes] = await Promise.all([
+        apiCall('getStores'),
+        apiCall('getVisits'),
+        apiCall('getStats')
+    ]);
+    if (storesRes?.stores) stores = storesRes.stores;
+    if (visitsRes?.visits) visits = visitsRes.visits;
+    document.getElementById('total-stores').textContent = statsRes?.totalStores || stores.length;
+    document.getElementById('total-visits').textContent = statsRes?.totalVisits || visits.length;
     renderStoreList();
-    updateStats();
 }
 
-// ==================== HELPERS ====================
+// HELPERS
 function getStoreVisits(code) { return visits.filter(v => v.store_code === code).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); }
-function getLatestVisit(code) { const v = getStoreVisits(code); return v.length > 0 ? v[0] : null; }
-function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+function getLatestVisit(code) { const v = getStoreVisits(code); return v[0] || null; }
+function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
 function formatDateTime(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
-function updateStats() { document.getElementById('total-stores').textContent = stores.length; document.getElementById('total-visits').textContent = visits.length; }
 
-// ==================== STORE LIST ====================
+// STORE LIST
 function renderStoreList(filter = '') {
     const list = document.getElementById('store-list');
     const filtered = stores.filter(s => (s.name || '').toLowerCase().includes(filter.toLowerCase()) || (s.code || '').toLowerCase().includes(filter.toLowerCase()));
-    if (filtered.length === 0) {
-        list.innerHTML = '<div class="empty-state"><h3>No stores</h3><p>Add your first store</p></div>';
-        return;
-    }
-    list.innerHTML = filtered.map(store => {
-        const sv = getStoreVisits(store.code);
-        return '<div class="store-item" onclick="selectStore(\'' + store.code + '\')"><div class="store-info"><h3>' + store.name + '</h3><p>' + (store.location || '') + '</p></div><div class="store-meta"><span class="store-code">' + store.code + '</span><div class="store-visits">' + sv.length + ' visits</div></div></div>';
+    if (!filtered.length) { list.innerHTML = '<div class="empty-state"><h3>No stores</h3></div>'; return; }
+    list.innerHTML = filtered.map(s => {
+        const sv = getStoreVisits(s.code);
+        return '<div class="store-item" onclick="selectStore(\'' + s.code + '\')"><div class="store-info"><h3>' + s.name + '</h3><p>' + (s.location || '') + '</p></div><div class="store-meta"><span class="store-code">' + s.code + '</span><div class="store-visits">' + sv.length + ' visits</div></div></div>';
     }).join('');
 }
+document.getElementById('store-search').addEventListener('input', e => renderStoreList(e.target.value));
 
-document.getElementById('store-search').addEventListener('input', (e) => renderStoreList(e.target.value));
-
-// ==================== STORE SELECTION ====================
+// SELECT STORE
 function selectStore(code) {
     currentStore = stores.find(s => s.code === code);
     isNewStore = false;
     const sv = getStoreVisits(code);
     lastVisitData = getLatestVisit(code);
-    
     document.getElementById('store-card').style.display = 'block';
     document.getElementById('card-code').textContent = currentStore.code;
     document.getElementById('card-name').textContent = currentStore.name;
     document.getElementById('card-details').textContent = (currentStore.location || '') + ' • ' + (currentStore.type || '');
     document.getElementById('card-visit-count').textContent = sv.length + ' visits';
     document.getElementById('card-last-visit').textContent = lastVisitData ? 'Last: ' + formatDate(lastVisitData.timestamp) : '';
-    
     renderVisitHistory(sv);
     document.getElementById('prefill-notice').style.display = lastVisitData ? 'flex' : 'none';
     document.getElementById('submit-note').textContent = 'Create visit #' + (sv.length + 1);
-    
     renderForm(false);
     prefillForm(lastVisitData);
     photos = [];
@@ -491,7 +371,7 @@ function selectStore(code) {
 
 function renderVisitHistory(sv) {
     const c = document.getElementById('visit-history');
-    if (sv.length === 0) { c.style.display = 'none'; return; }
+    if (!sv.length) { c.style.display = 'none'; return; }
     c.style.display = 'block';
     document.getElementById('history-count').textContent = sv.length;
     document.getElementById('history-list').innerHTML = sv.map((v, i) => {
@@ -512,24 +392,18 @@ function viewVisit(i) {
     document.getElementById('modal-title').textContent = formatDateTime(v.timestamp);
     let html = '';
     fieldConfig.forEach(f => { if (f.section !== 'business' && v[f.id]) html += '<div class="detail-row"><span class="detail-label">' + f.label + '</span><span class="detail-value">' + v[f.id] + '</span></div>'; });
-    
-    // Show photos if available
     if (v.photo_links) {
         const links = v.photo_links.split(' | ').filter(l => l.trim());
-        if (links.length > 0) {
-            html += '<div style="margin-top:16px;font-weight:600;color:#666;">📷 Photos (' + links.length + ')</div>';
-            html += '<div class="modal-photos">' + links.map(link => {
-                const fileId = link.match(/\/d\/([^\/]+)/)?.[1] || '';
-                const thumb = fileId ? 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w400' : '';
-                return '<a href="' + link + '" target="_blank"><img src="' + thumb + '" onerror="this.src=\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22>📷</text></svg>\'"></a>';
+        if (links.length) {
+            html += '<div style="margin-top:16px;font-weight:600;">📷 Photos</div><div class="modal-photos">' + links.map(link => {
+                const id = link.match(/\/d\/([^\/]+)/)?.[1] || '';
+                return '<a href="' + link + '" target="_blank"><img src="https://drive.google.com/thumbnail?id=' + id + '&sz=w200"></a>';
             }).join('') + '</div>';
         }
     }
-    
     document.getElementById('modal-body').innerHTML = html || '<p>No data</p>';
     document.getElementById('visit-modal').classList.add('open');
 }
-
 function closeModal() { document.getElementById('visit-modal').classList.remove('open'); }
 
 function startNewStore() {
@@ -538,11 +412,7 @@ function startNewStore() {
     document.getElementById('visit-history').style.display = 'none';
     document.getElementById('prefill-notice').style.display = 'none';
     document.getElementById('submit-note').textContent = 'Create new store';
-    clearForm();
-    photos = [];
-    updatePhotoUI();
-    renderForm(true);
-    showScreen('form');
+    clearForm(); photos = []; updatePhotoUI(); renderForm(true); showScreen('form');
 }
 
 function showScreen(s) {
@@ -551,17 +421,16 @@ function showScreen(s) {
     if (s === 'select') { document.getElementById('store-search').value = ''; renderStoreList(); }
 }
 
-// ==================== FORM ====================
+// FORM
 function renderForm(showBusiness) {
     const c = document.getElementById('form-sections-container');
     c.innerHTML = '';
     const sections = {};
     fieldConfig.filter(f => f.active).forEach(f => { if (!sections[f.section]) sections[f.section] = []; sections[f.section].push(f); });
-    
     Object.entries(sections).forEach(([sid, fields]) => {
         if (sid === 'business' && !showBusiness) return;
         const m = sectionMeta[sid] || { icon: '📋', title: sid, defaultOpen: false };
-        c.innerHTML += '<div class="form-section"><div class="section-header ' + (m.defaultOpen ? '' : 'collapsed') + '" onclick="toggleSection(this)"><span>' + m.icon + ' ' + m.title + '</span><svg class="toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"></path></svg></div><div class="section-content ' + (m.defaultOpen ? '' : 'collapsed') + '">' + fields.map(f => renderField(f)).join('') + '</div></div>';
+        c.innerHTML += '<div class="form-section"><div class="section-header ' + (m.defaultOpen ? '' : 'collapsed') + '" onclick="toggleSection(this)"><span>' + m.icon + ' ' + m.title + '</span><svg class="toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="section-content ' + (m.defaultOpen ? '' : 'collapsed') + '">' + fields.map(renderField).join('') + '</div></div>';
     });
     setupFormListeners();
 }
@@ -574,7 +443,7 @@ function renderField(f) {
     else if (f.type === 'textarea') inp = '<textarea class="textarea-input" id="' + f.id + '"></textarea>';
     else if (f.type === 'select') inp = '<select class="select-input" id="' + f.id + '"><option value="">Select...</option>' + (f.options || []).map(o => '<option value="' + o + '">' + o + '</option>').join('') + '</select>';
     else if (f.type === 'yesno') inp = '<div class="toggle-group"><button type="button" class="toggle-btn yes" data-field="' + f.id + '" data-value="YES">YES</button><button type="button" class="toggle-btn no" data-field="' + f.id + '" data-value="NO">NO</button></div>';
-    else if (f.type === 'multiselect') inp = '<div class="checkbox-grid" data-field="' + f.id + '">' + (f.options || []).map(o => '<label class="checkbox-item"><input type="checkbox" value="' + o + '"><span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg></span>' + o + '</label>').join('') + '</div>';
+    else if (f.type === 'multiselect') inp = '<div class="checkbox-grid" data-field="' + f.id + '">' + (f.options || []).map(o => '<label class="checkbox-item"><input type="checkbox" value="' + o + '"><span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>' + o + '</label>').join('') + '</div>';
     return '<div class="field-group ' + cond + '"><label class="field-label ' + req + '">' + f.label + '</label>' + inp + '</div>';
 }
 
@@ -594,13 +463,12 @@ function prefillForm(v) {
     fieldConfig.forEach(f => {
         const val = v[f.id]; if (!val) return;
         const el = document.getElementById(f.id);
-        if (['text','number','textarea','select'].includes(f.type)) { if (el) el.value = val; }
+        if (['text','number','textarea','select'].includes(f.type) && el) el.value = val;
         else if (f.type === 'yesno') {
             const btn = document.querySelector('[data-field="' + f.id + '"][data-value="' + val + '"]');
             if (btn) { btn.parentElement.querySelectorAll('.toggle-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active'); }
             document.querySelectorAll('[data-show-if="' + f.id + '"]').forEach(el => el.classList.toggle('visible', el.dataset.showValue === val));
-        }
-        else if (f.type === 'multiselect' && val) {
+        } else if (f.type === 'multiselect' && val) {
             const vals = val.split(', ');
             const grid = document.querySelector('[data-field="' + f.id + '"]');
             if (grid) grid.querySelectorAll('.checkbox-item').forEach(item => { const inp = item.querySelector('input'); if (vals.includes(inp.value)) { item.classList.add('checked'); inp.checked = true; } });
@@ -610,67 +478,42 @@ function prefillForm(v) {
 
 function toggleSection(h) { h.classList.toggle('collapsed'); h.nextElementSibling.classList.toggle('collapsed'); }
 
-// ==================== PHOTOS ====================
+// PHOTOS
 function handlePhotos(input) {
-    const maxSize = 1024 * 1024 * 2; // 2MB max per photo
-    
     Array.from(input.files).forEach(file => {
-        if (file.size > maxSize) {
-            showToast('Photo too large (max 2MB)', 'error');
-            return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            // Compress image
-            compressImage(e.target.result, 1200, 0.8, (compressed) => {
-                photos.push({ data: compressed, status: 'pending' });
-                updatePhotoUI();
-            });
+        if (file.size > 2 * 1024 * 1024) { showToast('Photo too large', 'error'); return; }
+        const r = new FileReader();
+        r.onload = e => {
+            compressImage(e.target.result, 800, 0.7, compressed => { photos.push({ data: compressed }); updatePhotoUI(); });
         };
-        reader.readAsDataURL(file);
+        r.readAsDataURL(file);
     });
-    input.value = ''; // Reset input
+    input.value = '';
 }
 
-function compressImage(dataUrl, maxWidth, quality, callback) {
+function compressImage(dataUrl, maxW, quality, cb) {
     const img = new Image();
     img.onload = () => {
         const canvas = document.createElement('canvas');
         let w = img.width, h = img.height;
-        if (w > maxWidth) { h = (maxWidth / w) * h; w = maxWidth; }
-        canvas.width = w;
-        canvas.height = h;
+        if (w > maxW) { h = (maxW / w) * h; w = maxW; }
+        canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        callback(canvas.toDataURL('image/jpeg', quality));
+        cb(canvas.toDataURL('image/jpeg', quality));
     };
     img.src = dataUrl;
 }
 
 function updatePhotoUI() {
     document.getElementById('photo-count-badge').textContent = photos.length;
-    const grid = document.getElementById('photo-previews');
-    grid.innerHTML = photos.map((p, i) => 
-        '<div class="photo-preview">' +
-        '<img src="' + p.data + '">' +
-        '<button class="photo-remove" onclick="removePhoto(' + i + ')">✕</button>' +
-        '</div>'
-    ).join('');
+    document.getElementById('photo-previews').innerHTML = photos.map((p, i) => '<div class="photo-preview"><img src="' + p.data + '"><button class="photo-remove" onclick="photos.splice(' + i + ',1);updatePhotoUI()">✕</button></div>').join('');
 }
 
-function removePhoto(i) {
-    photos.splice(i, 1);
-    updatePhotoUI();
-}
-
-// ==================== COLLECT & SUBMIT ====================
+// SUBMIT
 function collectFormData() {
     const data = { ...formData };
     document.querySelectorAll('.text-input, .textarea-input, .select-input').forEach(inp => { if (inp.id) data[inp.id] = inp.value; });
-    document.querySelectorAll('.checkbox-grid').forEach(grid => { 
-        const f = grid.dataset.field; 
-        data[f] = Array.from(grid.querySelectorAll('.checkbox-item.checked')).map(item => item.querySelector('input').value).join(', '); 
-    });
+    document.querySelectorAll('.checkbox-grid').forEach(grid => { data[grid.dataset.field] = Array.from(grid.querySelectorAll('.checkbox-item.checked')).map(item => item.querySelector('input').value).join(', '); });
     data.timestamp = new Date().toISOString();
     return data;
 }
@@ -687,48 +530,33 @@ function clearForm() {
 async function submitVisit() {
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.innerHTML = '<div class="spinner"></div> Submitting...';
+    btn.innerHTML = '<div class="spinner"></div> Saving...';
     
     const data = collectFormData();
     data.is_new_store = isNewStore;
     if (!isNewStore) data.store_code = currentStore.code;
+    if (photos.length) data.photos = photos.map(p => p.data);
     
-    // Include photos as base64 data
-    if (photos.length > 0) {
-        document.getElementById('upload-progress').classList.add('show');
-        data.photos = photos.map(p => p.data);
-    }
+    const result = await apiCall('addVisit', data);
     
-    const result = await apiPost('addVisit', data);
-    
-    document.getElementById('upload-progress').classList.remove('show');
-    
-    if (result && result.success) {
+    if (result?.success) {
         if (isNewStore) {
-            stores.push({ 
-                code: result.storeCode, 
-                name: data.business_name, 
-                location: data.store_location || data.address, 
-                type: data.business_type, 
-                contact: data.contact 
-            });
+            stores.push({ code: result.storeCode, name: data.business_name, location: data.store_location || data.address, type: data.business_type });
             data.store_code = result.storeCode;
         }
         data.photo_count = result.photoCount || photos.length;
         visits.unshift(data);
-        
-        const photoMsg = data.photo_count > 0 ? ' + ' + data.photo_count + ' photos' : '';
-        showToast('Visit saved!' + photoMsg, 'success');
-        setTimeout(() => { showScreen('select'); updateStats(); }, 1200);
+        showToast('Saved! ' + (data.photo_count ? '+ ' + data.photo_count + ' photos' : ''), 'success');
+        setTimeout(() => { showScreen('select'); document.getElementById('total-stores').textContent = stores.length; document.getElementById('total-visits').textContent = visits.length; }, 1000);
     } else {
         showToast('Error: ' + (result?.error || 'Failed'), 'error');
     }
     
     btn.disabled = false;
-    btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Submit Visit';
+    btn.innerHTML = 'Submit Visit';
 }
 
-// ==================== ADMIN ====================
+// ADMIN
 function toggleAdmin() { document.getElementById('admin-panel').classList.toggle('open'); document.getElementById('admin-overlay').classList.toggle('open'); }
 function showAdminTab(tab, btn) { document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('admin-' + tab).classList.add('active'); }
 function toggleOptionsField() { document.getElementById('options-row').style.display = ['select', 'multiselect'].includes(document.getElementById('new-field-type').value) ? 'block' : 'none'; }
@@ -737,25 +565,21 @@ function renderFieldConfigList() {
     const c = document.getElementById('field-config-list');
     const grouped = {};
     fieldConfig.forEach(f => { if (!grouped[f.section]) grouped[f.section] = []; grouped[f.section].push(f); });
-    let html = '';
-    Object.entries(grouped).forEach(([s, fields]) => {
+    c.innerHTML = Object.entries(grouped).map(([s, fields]) => {
         const m = sectionMeta[s] || { icon: '📋', title: s };
-        html += '<div class="section-group"><div class="section-group-title">' + m.icon + ' ' + m.title + '</div>' + fields.map(f => '<div class="field-config-item"><div class="field-info"><div class="field-name">' + f.label + '</div><div class="field-meta">' + f.type + '</div></div><div class="field-toggle ' + (f.active ? 'active' : '') + '" onclick="toggleFieldActive(\'' + f.id + '\')"></div></div>').join('') + '</div>';
-    });
-    c.innerHTML = html;
+        return '<div class="section-group"><div class="section-group-title">' + m.icon + ' ' + m.title + '</div>' + fields.map(f => '<div class="field-config-item"><div class="field-info"><div class="field-name">' + f.label + '</div><div class="field-meta">' + f.type + '</div></div><div class="field-toggle ' + (f.active ? 'active' : '') + '" onclick="toggleFieldActive(\'' + f.id + '\')"></div></div>').join('') + '</div>';
+    }).join('');
 }
 
 function toggleFieldActive(id) { const f = fieldConfig.find(x => x.id === id); if (f) { f.active = !f.active; renderFieldConfigList(); showToast(f.label + (f.active ? ' on' : ' off')); } }
 
 function addNewField() {
     const label = document.getElementById('new-field-label').value.trim();
-    const type = document.getElementById('new-field-type').value;
-    const section = document.getElementById('new-field-section').value;
-    const opts = document.getElementById('new-field-options').value.trim();
     if (!label) { showToast('Enter label', 'error'); return; }
     const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_');
     if (fieldConfig.find(f => f.id === id)) { showToast('Exists', 'error'); return; }
-    const nf = { id, label, type, section, required: false, active: true };
+    const nf = { id, label, type: document.getElementById('new-field-type').value, section: document.getElementById('new-field-section').value, required: false, active: true };
+    const opts = document.getElementById('new-field-options').value.trim();
     if (opts) nf.options = opts.split(',').map(o => o.trim());
     fieldConfig.push(nf);
     document.getElementById('new-field-label').value = '';
@@ -766,8 +590,7 @@ function addNewField() {
 }
 
 function showToast(msg, type) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast ' + (type || '') + ' show'; setTimeout(() => t.classList.remove('show'), 3000); }
-
-document.getElementById('visit-modal').addEventListener('click', (e) => { if (e.target.id === 'visit-modal') closeModal(); });
+document.getElementById('visit-modal').addEventListener('click', e => { if (e.target.id === 'visit-modal') closeModal(); });
 </script>
 </body>
 </html>
