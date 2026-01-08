@@ -71,9 +71,8 @@
         .toggle-btn.yes.active { background: var(--success); border-color: var(--success); color: white; }
         .toggle-btn.no.active { background: #ef4444; border-color: #ef4444; color: white; }
         .checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 13px; user-select: none; }
         .checkbox-item.checked { background: #fef2f2; border-color: var(--ivg-red); }
-        .checkbox-item input { display: none; }
         .checkbox-box { width: 20px; height: 20px; border: 2px solid var(--border-color); border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .checkbox-item.checked .checkbox-box { background: var(--ivg-red); border-color: var(--ivg-red); }
         .checkbox-box svg { opacity: 0; }
@@ -88,11 +87,11 @@
         .photo-upload-area:hover, .photo-upload-area:active { border-color: #2563eb; background: #eff6ff; }
         .photo-upload-area .icon { font-size: 40px; margin-bottom: 8px; }
         .photo-upload-area .text { font-size: 14px; color: var(--text-secondary); }
-        .photo-upload-area .subtext { font-size: 12px; color: #999; margin-top: 4px; }
         .photo-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
         .photo-preview { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
         .photo-remove { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; background: rgba(239,68,68,0.9); border: none; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .photo-note { font-size: 11px; color: #666; text-align: center; margin-top: 8px; }
         .submit-section { position: sticky; bottom: 0; background: linear-gradient(to top, var(--bg-light) 80%, transparent); padding: 16px 0 24px; margin-top: 16px; }
         .submit-note { text-align: center; font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
         .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--ivg-black); color: white; padding: 14px 24px; border-radius: 12px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 1000; max-width: 90%; text-align: center; }
@@ -205,6 +204,7 @@
                     </div>
                     <input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotos(this)">
                     <div class="photo-preview-grid" id="photo-previews"></div>
+                    <div class="photo-note" id="photo-note"></div>
                 </div>
             </div>
             <div class="submit-section">
@@ -246,7 +246,7 @@
     <div class="toast" id="toast"></div>
 
 <script>
-// CONFIG - PUT YOUR URL HERE
+// CONFIG
 const API_URL = 'https://script.google.com/macros/s/AKfycbw2d7I-4vXphPa-rftpaqHGPfuqVmkQOemIEZv3NMOeYJdC4thuqGCFnFdsn86bfPOdjg/exec';
 
 // STATE
@@ -291,18 +291,36 @@ const sectionMeta = {
     notes: { icon: '📝', title: 'Notes', defaultOpen: true },
 };
 
-// API - Using GET with data parameter to avoid CORS
+// API - no photos in URL, photos uploaded separately
 async function apiCall(action, data = null) {
     try {
         let url = API_URL + '?action=' + action;
         if (data) {
-            url += '&data=' + encodeURIComponent(JSON.stringify(data));
+            // Remove photos from URL data - they'll be uploaded separately
+            const urlData = { ...data };
+            delete urlData.photos;
+            url += '&data=' + encodeURIComponent(JSON.stringify(urlData));
         }
         const r = await fetch(url);
         return await r.json();
     } catch (e) {
         console.error('API Error:', e);
         return null;
+    }
+}
+
+// Upload single photo
+async function uploadPhoto(storeCode, photoData) {
+    try {
+        const url = API_URL + '?action=uploadPhoto&data=' + encodeURIComponent(JSON.stringify({
+            storeCode: storeCode,
+            photoData: photoData
+        }));
+        const r = await fetch(url);
+        return await r.json();
+    } catch (e) {
+        console.error('Photo upload error:', e);
+        return { success: false };
     }
 }
 
@@ -443,7 +461,7 @@ function renderField(f) {
     else if (f.type === 'textarea') inp = '<textarea class="textarea-input" id="' + f.id + '"></textarea>';
     else if (f.type === 'select') inp = '<select class="select-input" id="' + f.id + '"><option value="">Select...</option>' + (f.options || []).map(o => '<option value="' + o + '">' + o + '</option>').join('') + '</select>';
     else if (f.type === 'yesno') inp = '<div class="toggle-group"><button type="button" class="toggle-btn yes" data-field="' + f.id + '" data-value="YES">YES</button><button type="button" class="toggle-btn no" data-field="' + f.id + '" data-value="NO">NO</button></div>';
-    else if (f.type === 'multiselect') inp = '<div class="checkbox-grid" data-field="' + f.id + '">' + (f.options || []).map(o => '<label class="checkbox-item"><input type="checkbox" value="' + o + '"><span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>' + o + '</label>').join('') + '</div>';
+    else if (f.type === 'multiselect') inp = '<div class="checkbox-grid" data-field="' + f.id + '">' + (f.options || []).map(o => '<div class="checkbox-item" data-value="' + o + '"><span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span>' + o + '</span></div>').join('') + '</div>';
     return '<div class="field-group ' + cond + '"><label class="field-label ' + req + '">' + f.label + '</label>' + inp + '</div>';
 }
 
@@ -454,7 +472,15 @@ function setupFormListeners() {
         formData[b.dataset.field] = b.dataset.value;
         document.querySelectorAll('[data-show-if="' + b.dataset.field + '"]').forEach(el => el.classList.toggle('visible', el.dataset.showValue === b.dataset.value));
     }));
-    document.querySelectorAll('.checkbox-item').forEach(item => item.addEventListener('click', () => { item.classList.toggle('checked'); item.querySelector('input').checked = item.classList.contains('checked'); }));
+    
+    // Fixed checkbox handler
+    document.querySelectorAll('.checkbox-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.toggle('checked');
+        });
+    });
 }
 
 function prefillForm(v) {
@@ -471,20 +497,27 @@ function prefillForm(v) {
         } else if (f.type === 'multiselect' && val) {
             const vals = val.split(', ');
             const grid = document.querySelector('[data-field="' + f.id + '"]');
-            if (grid) grid.querySelectorAll('.checkbox-item').forEach(item => { const inp = item.querySelector('input'); if (vals.includes(inp.value)) { item.classList.add('checked'); inp.checked = true; } });
+            if (grid) grid.querySelectorAll('.checkbox-item').forEach(item => {
+                if (vals.includes(item.dataset.value)) {
+                    item.classList.add('checked');
+                }
+            });
         }
     });
 }
 
 function toggleSection(h) { h.classList.toggle('collapsed'); h.nextElementSibling.classList.toggle('collapsed'); }
 
-// PHOTOS
+// PHOTOS - more aggressive compression
 function handlePhotos(input) {
     Array.from(input.files).forEach(file => {
-        if (file.size > 2 * 1024 * 1024) { showToast('Photo too large', 'error'); return; }
         const r = new FileReader();
         r.onload = e => {
-            compressImage(e.target.result, 800, 0.7, compressed => { photos.push({ data: compressed }); updatePhotoUI(); });
+            // Compress to 600px max, 50% quality
+            compressImage(e.target.result, 600, 0.5, compressed => {
+                photos.push({ data: compressed });
+                updatePhotoUI();
+            });
         };
         r.readAsDataURL(file);
     });
@@ -497,6 +530,7 @@ function compressImage(dataUrl, maxW, quality, cb) {
         const canvas = document.createElement('canvas');
         let w = img.width, h = img.height;
         if (w > maxW) { h = (maxW / w) * h; w = maxW; }
+        if (h > maxW) { w = (maxW / h) * w; h = maxW; }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         cb(canvas.toDataURL('image/jpeg', quality));
@@ -506,14 +540,26 @@ function compressImage(dataUrl, maxW, quality, cb) {
 
 function updatePhotoUI() {
     document.getElementById('photo-count-badge').textContent = photos.length;
-    document.getElementById('photo-previews').innerHTML = photos.map((p, i) => '<div class="photo-preview"><img src="' + p.data + '"><button class="photo-remove" onclick="photos.splice(' + i + ',1);updatePhotoUI()">✕</button></div>').join('');
+    document.getElementById('photo-previews').innerHTML = photos.map((p, i) => '<div class="photo-preview"><img src="' + p.data + '"><button class="photo-remove" onclick="removePhoto(' + i + ')">✕</button></div>').join('');
+    document.getElementById('photo-note').textContent = photos.length ? photos.length + ' photo(s) ready' : '';
 }
 
-// SUBMIT
+function removePhoto(i) {
+    photos.splice(i, 1);
+    updatePhotoUI();
+}
+
+// SUBMIT - form first, then photos one by one
 function collectFormData() {
     const data = { ...formData };
     document.querySelectorAll('.text-input, .textarea-input, .select-input').forEach(inp => { if (inp.id) data[inp.id] = inp.value; });
-    document.querySelectorAll('.checkbox-grid').forEach(grid => { data[grid.dataset.field] = Array.from(grid.querySelectorAll('.checkbox-item.checked')).map(item => item.querySelector('input').value).join(', '); });
+    
+    // Fixed multiselect collection
+    document.querySelectorAll('.checkbox-grid').forEach(grid => {
+        const checked = Array.from(grid.querySelectorAll('.checkbox-item.checked')).map(item => item.dataset.value);
+        data[grid.dataset.field] = checked.join(', ');
+    });
+    
     data.timestamp = new Date().toISOString();
     return data;
 }
@@ -523,7 +569,7 @@ function clearForm() {
     document.querySelectorAll('.text-input, .textarea-input').forEach(el => el.value = '');
     document.querySelectorAll('.select-input').forEach(el => el.selectedIndex = 0);
     document.querySelectorAll('.toggle-btn').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.checkbox-item').forEach(el => { el.classList.remove('checked'); el.querySelector('input').checked = false; });
+    document.querySelectorAll('.checkbox-item').forEach(el => el.classList.remove('checked'));
     document.querySelectorAll('.conditional-field').forEach(el => el.classList.remove('visible'));
 }
 
@@ -535,22 +581,47 @@ async function submitVisit() {
     const data = collectFormData();
     data.is_new_store = isNewStore;
     if (!isNewStore) data.store_code = currentStore.code;
-    if (photos.length) data.photos = photos.map(p => p.data);
     
+    // Step 1: Submit form data (no photos)
     const result = await apiCall('addVisit', data);
     
-    if (result?.success) {
-        if (isNewStore) {
-            stores.push({ code: result.storeCode, name: data.business_name, location: data.store_location || data.address, type: data.business_type });
-            data.store_code = result.storeCode;
-        }
-        data.photo_count = result.photoCount || photos.length;
-        visits.unshift(data);
-        showToast('Saved! ' + (data.photo_count ? '+ ' + data.photo_count + ' photos' : ''), 'success');
-        setTimeout(() => { showScreen('select'); document.getElementById('total-stores').textContent = stores.length; document.getElementById('total-visits').textContent = visits.length; }, 1000);
-    } else {
+    if (!result?.success) {
         showToast('Error: ' + (result?.error || 'Failed'), 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Submit Visit';
+        return;
     }
+    
+    const storeCode = result.storeCode || currentStore?.code;
+    
+    // Step 2: Upload photos one by one
+    let uploadedCount = 0;
+    if (photos.length > 0) {
+        btn.innerHTML = '<div class="spinner"></div> Uploading photos...';
+        
+        for (let i = 0; i < photos.length; i++) {
+            btn.innerHTML = '<div class="spinner"></div> Photo ' + (i + 1) + '/' + photos.length;
+            const photoResult = await uploadPhoto(storeCode, photos[i].data);
+            if (photoResult?.success) uploadedCount++;
+        }
+    }
+    
+    // Update local state
+    if (isNewStore) {
+        stores.push({ code: storeCode, name: data.business_name, location: data.store_location || data.address, type: data.business_type });
+    }
+    data.store_code = storeCode;
+    data.photo_count = uploadedCount;
+    visits.unshift(data);
+    
+    const msg = uploadedCount > 0 ? 'Saved + ' + uploadedCount + ' photos!' : 'Saved!';
+    showToast(msg, 'success');
+    
+    setTimeout(() => {
+        showScreen('select');
+        document.getElementById('total-stores').textContent = stores.length;
+        document.getElementById('total-visits').textContent = visits.length;
+    }, 1000);
     
     btn.disabled = false;
     btn.innerHTML = 'Submit Visit';
