@@ -12,7 +12,6 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: var(--bg-light); color: var(--text-primary); min-height: 100vh; }
         .header { background: var(--ivg-black); padding: 12px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
         .header-content { display: flex; align-items: center; justify-content: space-between; max-width: 600px; margin: 0 auto; }
-        .logo-wrap { display: flex; align-items: center; gap: 8px; }
         .admin-btn { background: var(--ivg-red); border: none; color: white; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
         .container { max-width: 600px; margin: 0 auto; padding: 16px; }
         .screen { display: none; }
@@ -132,7 +131,6 @@
         .section-group { margin-bottom: 24px; }
         .section-group-title { font-size: 12px; font-weight: 700; color: var(--ivg-red); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid var(--ivg-red); }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
-        .empty-state h3 { margin: 16px 0 8px; color: var(--text-primary); }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.open { display: flex; }
         .modal-content { background: white; border-radius: 12px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; }
@@ -151,17 +149,14 @@
     </style>
 </head>
 <body>
-    <div class="offline-banner" id="offline-banner">⚠️ Offline - data won't save</div>
-    <div class="loading-overlay" id="loading-overlay">
-        <div class="spinner"></div>
-        <div>Loading...</div>
-    </div>
+    <div class="offline-banner" id="offline-banner">⚠️ Offline</div>
+    <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><div>Loading...</div></div>
     
     <header class="header">
         <div class="header-content">
-            <div class="logo-wrap">
-                <span style="font-size: 24px; font-weight: 900; color: white;">IVG</span>
-                <span style="font-size: 24px; font-weight: 900; color: #E31937;">STORE VISIT</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:24px;font-weight:900;color:white;">IVG</span>
+                <span style="font-size:24px;font-weight:900;color:#E31937;">STORE VISIT</span>
             </div>
             <button class="admin-btn" onclick="toggleAdmin()">⚙️</button>
         </div>
@@ -174,7 +169,7 @@
                 <div class="stat-card"><div class="number" id="total-visits">0</div><div class="label">Visits</div></div>
             </div>
             <div class="search-box">
-                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg>
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 <input type="text" class="search-input" id="store-search" placeholder="Search stores...">
             </div>
             <div class="store-list" id="store-list"></div>
@@ -246,182 +241,167 @@
     <div class="toast" id="toast"></div>
 
 <script>
-// CONFIG
 const API_URL = 'https://script.google.com/macros/s/AKfycbw2d7I-4vXphPa-rftpaqHGPfuqVmkQOemIEZv3NMOeYJdC4thuqGCFnFdsn86bfPOdjg/exec';
 
-// STATE
 let currentStore = null, isNewStore = false, lastVisitData = null, photos = [], formData = {}, stores = [], visits = [];
 
-let fieldConfig = [
+const fieldConfig = [
     { id: 'business_name', label: 'Business Name', type: 'text', section: 'business', required: true, active: true },
     { id: 'business_type', label: 'Business Type', type: 'select', section: 'business', required: true, active: true, options: ['Vape Store','Vape Chain','FMCG','Wholesaler','Convenience','Phone Repair'] },
     { id: 'address', label: 'Address', type: 'text', section: 'business', required: true, active: true },
-    { id: 'postcode', label: 'Post Code', type: 'text', section: 'business', required: false, active: true },
-    { id: 'store_location', label: 'Town/Area', type: 'text', section: 'business', required: false, active: true },
-    { id: 'contact', label: 'Contact', type: 'text', section: 'business', required: false, active: true },
-    { id: 'phone', label: 'Phone', type: 'text', section: 'business', required: false, active: true },
-    { id: 'email', label: 'Email', type: 'text', section: 'business', required: false, active: true },
+    { id: 'postcode', label: 'Post Code', type: 'text', section: 'business', active: true },
+    { id: 'store_location', label: 'Town/Area', type: 'text', section: 'business', active: true },
+    { id: 'contact', label: 'Contact', type: 'text', section: 'business', active: true },
+    { id: 'phone', label: 'Phone', type: 'text', section: 'business', active: true },
+    { id: 'email', label: 'Email', type: 'text', section: 'business', active: true },
     { id: 'main_supplier', label: 'Main Supplier', type: 'select', section: 'business', required: true, active: true, options: ['HALE','CLAYTON','E-CIRETTE','JFC','NEWVEND','CHINMARA','UK WHOLESALE','FLEMING','SMOKEGREEN','AMPERSAND','KADONA','OTHER'] },
     { id: 'has_ivg2400', label: 'Has IVG 2400?', type: 'yesno', section: 'products', required: true, active: true },
-    { id: 'ivg2400_sku', label: '2400 SKU Count', type: 'number', section: 'products', required: false, active: true, showIf: { field: 'has_ivg2400', value: 'YES' } },
+    { id: 'ivg2400_sku', label: '2400 SKU Count', type: 'number', section: 'products', active: true, showIf: { field: 'has_ivg2400', value: 'YES' } },
     { id: 'has_smart5500', label: 'Has SMART 5500?', type: 'yesno', section: 'products', required: true, active: true },
     { id: 'has_pro12', label: 'Has PRO-12?', type: 'yesno', section: 'products', required: true, active: true },
     { id: 'has_savr', label: 'Has IVG SAVR?', type: 'yesno', section: 'products', required: true, active: true },
-    { id: 'has_10ml_salts', label: 'Has 10ML Salts?', type: 'yesno', section: 'products', required: false, active: true },
+    { id: 'has_10ml_salts', label: 'Has 10ML Salts?', type: 'yesno', section: 'products', active: true },
     { id: 'gantry_share', label: 'Gantry % IVG', type: 'number', section: 'gantry', required: true, active: true },
-    { id: 'ivg2400_units_wide', label: '2400 Units Wide', type: 'number', section: 'gantry', required: false, active: true },
-    { id: 'ivg2400_placement', label: '2400 Placement', type: 'multiselect', section: 'gantry', required: false, active: true, options: ['Counter','Eye Level','Top','Middle','Bottom'] },
-    { id: 'devices_daily_sales', label: 'Devices/Day', type: 'number', section: 'sales', required: false, active: true },
+    { id: 'ivg2400_units_wide', label: '2400 Units Wide', type: 'number', section: 'gantry', active: true },
+    { id: 'ivg2400_placement', label: '2400 Placement', type: 'multiselect', section: 'gantry', active: true, options: ['Counter','Eye Level','Top','Middle','Bottom'] },
+    { id: 'devices_daily_sales', label: 'Devices/Day', type: 'number', section: 'sales', active: true },
     { id: 'order_placed', label: 'Order Placed?', type: 'yesno', section: 'orders', required: true, active: true },
-    { id: 'devices_order_frequency', label: 'Order Frequency', type: 'select', section: 'orders', required: false, active: true, options: ['DAILY','WEEKLY','10 DAYS','14 DAYS','30 DAYS'] },
-    { id: 'pos_allowed', label: 'POS Allowed?', type: 'yesno', section: 'pos', required: false, active: true },
-    { id: 'brand_pos_required', label: 'POS Needed', type: 'multiselect', section: 'pos', required: false, active: true, options: ['Door Signs','Floor Mats','Counter Mats','Shelf Strips','Wobblers'] },
-    { id: 'devices_competitor1', label: 'Top Competitor', type: 'select', section: 'competitors', required: false, active: true, options: ['LOST MARY','VUSE','ELF BAR','HAYATTI','SKE','GOLD BAR'] },
-    { id: 'notes', label: 'Notes', type: 'textarea', section: 'notes', required: false, active: true },
+    { id: 'devices_order_frequency', label: 'Order Frequency', type: 'select', section: 'orders', active: true, options: ['DAILY','WEEKLY','10 DAYS','14 DAYS','30 DAYS'] },
+    { id: 'pos_allowed', label: 'POS Allowed?', type: 'yesno', section: 'pos', active: true },
+    { id: 'brand_pos_required', label: 'POS Needed', type: 'multiselect', section: 'pos', active: true, options: ['Door Signs','Floor Mats','Counter Mats','Shelf Strips','Wobblers'] },
+    { id: 'devices_competitor1', label: 'Top Competitor', type: 'select', section: 'competitors', active: true, options: ['LOST MARY','VUSE','ELF BAR','HAYATTI','SKE','GOLD BAR'] },
+    { id: 'notes', label: 'Notes', type: 'textarea', section: 'notes', active: true },
 ];
 
 const sectionMeta = {
-    business: { icon: '📍', title: 'Business', defaultOpen: true },
-    products: { icon: '📦', title: 'Products', defaultOpen: true },
-    gantry: { icon: '🗄️', title: 'Gantry', defaultOpen: false },
-    sales: { icon: '📊', title: 'Sales', defaultOpen: false },
-    orders: { icon: '🛒', title: 'Orders', defaultOpen: false },
-    pos: { icon: '🏷️', title: 'POS', defaultOpen: false },
-    competitors: { icon: '🏆', title: 'Competitors', defaultOpen: false },
-    notes: { icon: '📝', title: 'Notes', defaultOpen: true },
+    business: { icon: '📍', title: 'Business', open: true },
+    products: { icon: '📦', title: 'Products', open: true },
+    gantry: { icon: '🗄️', title: 'Gantry' },
+    sales: { icon: '📊', title: 'Sales' },
+    orders: { icon: '🛒', title: 'Orders' },
+    pos: { icon: '🏷️', title: 'POS' },
+    competitors: { icon: '🏆', title: 'Competitors' },
+    notes: { icon: '📝', title: 'Notes', open: true },
 };
 
-// API - no photos in URL, photos uploaded separately
-async function apiCall(action, data = null) {
-    try {
-        let url = API_URL + '?action=' + action;
-        if (data) {
-            // Remove photos from URL data - they'll be uploaded separately
-            const urlData = { ...data };
-            delete urlData.photos;
-            url += '&data=' + encodeURIComponent(JSON.stringify(urlData));
-        }
-        const r = await fetch(url);
-        return await r.json();
-    } catch (e) {
-        console.error('API Error:', e);
-        return null;
-    }
+// Simple GET for reads
+async function apiGet(action, params = {}) {
+    const url = new URL(API_URL);
+    url.searchParams.set('action', action);
+    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+    const r = await fetch(url);
+    return r.json();
 }
 
-// Upload single photo
-async function uploadPhoto(storeCode, photoData) {
-    try {
-        const url = API_URL + '?action=uploadPhoto&data=' + encodeURIComponent(JSON.stringify({
-            storeCode: storeCode,
-            photoData: photoData
-        }));
-        const r = await fetch(url);
-        return await r.json();
-    } catch (e) {
-        console.error('Photo upload error:', e);
-        return { success: false };
-    }
+// Form POST for writes (no CORS preflight)
+async function apiPost(action, data) {
+    const form = new FormData();
+    form.append('action', action);
+    form.append('data', JSON.stringify(data));
+    
+    const r = await fetch(API_URL, {
+        method: 'POST',
+        body: form
+    });
+    return r.json();
 }
 
-// INIT
 document.addEventListener('DOMContentLoaded', async () => {
     if (!navigator.onLine) document.getElementById('offline-banner').classList.add('show');
     window.addEventListener('online', () => document.getElementById('offline-banner').classList.remove('show'));
     window.addEventListener('offline', () => document.getElementById('offline-banner').classList.add('show'));
-    await loadData();
-    document.getElementById('loading-overlay').style.display = 'none';
+    
+    try {
+        const [storesRes, visitsRes, statsRes] = await Promise.all([
+            apiGet('getStores'), apiGet('getVisits'), apiGet('getStats')
+        ]);
+        if (storesRes?.stores) stores = storesRes.stores;
+        if (visitsRes?.visits) visits = visitsRes.visits;
+        document.getElementById('total-stores').textContent = statsRes?.totalStores || 0;
+        document.getElementById('total-visits').textContent = statsRes?.totalVisits || 0;
+    } catch(e) { console.error(e); }
+    
+    renderStoreList();
     renderFieldConfigList();
+    document.getElementById('loading-overlay').style.display = 'none';
 });
 
-async function loadData() {
-    const [storesRes, visitsRes, statsRes] = await Promise.all([
-        apiCall('getStores'),
-        apiCall('getVisits'),
-        apiCall('getStats')
-    ]);
-    if (storesRes?.stores) stores = storesRes.stores;
-    if (visitsRes?.visits) visits = visitsRes.visits;
-    document.getElementById('total-stores').textContent = statsRes?.totalStores || stores.length;
-    document.getElementById('total-visits').textContent = statsRes?.totalVisits || visits.length;
-    renderStoreList();
-}
+function getStoreVisits(code) { return visits.filter(v => v.store_code === code).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)); }
+function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'short' }); }
+function formatDateTime(d) { return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }); }
 
-// HELPERS
-function getStoreVisits(code) { return visits.filter(v => v.store_code === code).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); }
-function getLatestVisit(code) { const v = getStoreVisits(code); return v[0] || null; }
-function formatDate(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
-function formatDateTime(d) { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
-
-// STORE LIST
 function renderStoreList(filter = '') {
     const list = document.getElementById('store-list');
-    const filtered = stores.filter(s => (s.name || '').toLowerCase().includes(filter.toLowerCase()) || (s.code || '').toLowerCase().includes(filter.toLowerCase()));
+    const f = filter.toLowerCase();
+    const filtered = stores.filter(s => (s.name||'').toLowerCase().includes(f) || (s.code||'').toLowerCase().includes(f));
     if (!filtered.length) { list.innerHTML = '<div class="empty-state"><h3>No stores</h3></div>'; return; }
     list.innerHTML = filtered.map(s => {
-        const sv = getStoreVisits(s.code);
-        return '<div class="store-item" onclick="selectStore(\'' + s.code + '\')"><div class="store-info"><h3>' + s.name + '</h3><p>' + (s.location || '') + '</p></div><div class="store-meta"><span class="store-code">' + s.code + '</span><div class="store-visits">' + sv.length + ' visits</div></div></div>';
+        const v = getStoreVisits(s.code);
+        return `<div class="store-item" onclick="selectStore('${s.code}')"><div class="store-info"><h3>${s.name}</h3><p>${s.location||''}</p></div><div class="store-meta"><span class="store-code">${s.code}</span><div class="store-visits">${v.length} visits</div></div></div>`;
     }).join('');
 }
+
 document.getElementById('store-search').addEventListener('input', e => renderStoreList(e.target.value));
 
-// SELECT STORE
 function selectStore(code) {
     currentStore = stores.find(s => s.code === code);
     isNewStore = false;
     const sv = getStoreVisits(code);
-    lastVisitData = getLatestVisit(code);
+    lastVisitData = sv[0] || null;
+    
     document.getElementById('store-card').style.display = 'block';
     document.getElementById('card-code').textContent = currentStore.code;
     document.getElementById('card-name').textContent = currentStore.name;
-    document.getElementById('card-details').textContent = (currentStore.location || '') + ' • ' + (currentStore.type || '');
-    document.getElementById('card-visit-count').textContent = sv.length + ' visits';
-    document.getElementById('card-last-visit').textContent = lastVisitData ? 'Last: ' + formatDate(lastVisitData.timestamp) : '';
+    document.getElementById('card-details').textContent = `${currentStore.location||''} • ${currentStore.type||''}`;
+    document.getElementById('card-visit-count').textContent = `${sv.length} visits`;
+    document.getElementById('card-last-visit').textContent = lastVisitData ? `Last: ${formatDate(lastVisitData.timestamp)}` : '';
+    
     renderVisitHistory(sv);
     document.getElementById('prefill-notice').style.display = lastVisitData ? 'flex' : 'none';
-    document.getElementById('submit-note').textContent = 'Create visit #' + (sv.length + 1);
+    document.getElementById('submit-note').textContent = `Create visit #${sv.length + 1}`;
+    
     renderForm(false);
-    prefillForm(lastVisitData);
+    if (lastVisitData) prefillForm(lastVisitData);
     photos = [];
     updatePhotoUI();
     showScreen('form');
 }
 
 function renderVisitHistory(sv) {
-    const c = document.getElementById('visit-history');
-    if (!sv.length) { c.style.display = 'none'; return; }
-    c.style.display = 'block';
+    const el = document.getElementById('visit-history');
+    if (!sv.length) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
     document.getElementById('history-count').textContent = sv.length;
-    document.getElementById('history-list').innerHTML = sv.map((v, i) => {
-        const sum = [];
-        if (v.has_ivg2400 === 'YES') sum.push('2400');
-        if (v.has_pro12 === 'YES') sum.push('PRO');
-        if (v.order_placed === 'YES') sum.push('📦');
-        if (parseInt(v.photo_count) > 0) sum.push('📷' + v.photo_count);
-        return '<div class="history-item"><div><div class="date">' + formatDateTime(v.timestamp) + '</div><div class="summary">' + (sum.join(' ') || '-') + '</div></div><button class="view-btn" onclick="viewVisit(' + i + ')">View</button></div>';
+    document.getElementById('history-list').innerHTML = sv.map((v,i) => {
+        const tags = [];
+        if (v.has_ivg2400 === 'YES') tags.push('2400');
+        if (v.has_pro12 === 'YES') tags.push('PRO');
+        if (v.order_placed === 'YES') tags.push('📦');
+        if (parseInt(v.photo_count) > 0) tags.push(`📷${v.photo_count}`);
+        return `<div class="history-item"><div><div class="date">${formatDateTime(v.timestamp)}</div><div class="summary">${tags.join(' ')||'-'}</div></div><button class="view-btn" onclick="viewVisit(${i})">View</button></div>`;
     }).join('');
 }
 
 function toggleHistory() { document.getElementById('history-list').classList.toggle('collapsed'); }
 
 function viewVisit(i) {
-    const sv = getStoreVisits(currentStore.code);
-    const v = sv[i];
+    const v = getStoreVisits(currentStore.code)[i];
     document.getElementById('modal-title').textContent = formatDateTime(v.timestamp);
     let html = '';
-    fieldConfig.forEach(f => { if (f.section !== 'business' && v[f.id]) html += '<div class="detail-row"><span class="detail-label">' + f.label + '</span><span class="detail-value">' + v[f.id] + '</span></div>'; });
+    fieldConfig.forEach(f => { if (f.section !== 'business' && v[f.id]) html += `<div class="detail-row"><span class="detail-label">${f.label}</span><span class="detail-value">${v[f.id]}</span></div>`; });
     if (v.photo_links) {
-        const links = v.photo_links.split(' | ').filter(l => l.trim());
+        const links = v.photo_links.split(' | ').filter(l => l);
         if (links.length) {
-            html += '<div style="margin-top:16px;font-weight:600;">📷 Photos</div><div class="modal-photos">' + links.map(link => {
-                const id = link.match(/\/d\/([^\/]+)/)?.[1] || '';
-                return '<a href="' + link + '" target="_blank"><img src="https://drive.google.com/thumbnail?id=' + id + '&sz=w200"></a>';
-            }).join('') + '</div>';
+            html += `<div style="margin-top:16px;font-weight:600;">📷 Photos</div><div class="modal-photos">${links.map(l => {
+                const id = l.match(/\/d\/([^\/]+)/)?.[1]||'';
+                return `<a href="${l}" target="_blank"><img src="https://drive.google.com/thumbnail?id=${id}&sz=w200"></a>`;
+            }).join('')}</div>`;
         }
     }
     document.getElementById('modal-body').innerHTML = html || '<p>No data</p>';
     document.getElementById('visit-modal').classList.add('open');
 }
+
 function closeModal() { document.getElementById('visit-modal').classList.remove('open'); }
 
 function startNewStore() {
@@ -430,7 +410,11 @@ function startNewStore() {
     document.getElementById('visit-history').style.display = 'none';
     document.getElementById('prefill-notice').style.display = 'none';
     document.getElementById('submit-note').textContent = 'Create new store';
-    clearForm(); photos = []; updatePhotoUI(); renderForm(true); showScreen('form');
+    clearForm();
+    photos = [];
+    updatePhotoUI();
+    renderForm(true);
+    showScreen('form');
 }
 
 function showScreen(s) {
@@ -439,68 +423,60 @@ function showScreen(s) {
     if (s === 'select') { document.getElementById('store-search').value = ''; renderStoreList(); }
 }
 
-// FORM
 function renderForm(showBusiness) {
     const c = document.getElementById('form-sections-container');
     c.innerHTML = '';
     const sections = {};
     fieldConfig.filter(f => f.active).forEach(f => { if (!sections[f.section]) sections[f.section] = []; sections[f.section].push(f); });
+    
     Object.entries(sections).forEach(([sid, fields]) => {
         if (sid === 'business' && !showBusiness) return;
-        const m = sectionMeta[sid] || { icon: '📋', title: sid, defaultOpen: false };
-        c.innerHTML += '<div class="form-section"><div class="section-header ' + (m.defaultOpen ? '' : 'collapsed') + '" onclick="toggleSection(this)"><span>' + m.icon + ' ' + m.title + '</span><svg class="toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="section-content ' + (m.defaultOpen ? '' : 'collapsed') + '">' + fields.map(renderField).join('') + '</div></div>';
+        const m = sectionMeta[sid] || { icon: '📋', title: sid };
+        const collapsed = m.open ? '' : 'collapsed';
+        c.innerHTML += `<div class="form-section"><div class="section-header ${collapsed}" onclick="toggleSection(this)"><span>${m.icon} ${m.title}</span><svg class="toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="section-content ${collapsed}">${fields.map(renderField).join('')}</div></div>`;
     });
     setupFormListeners();
 }
 
 function renderField(f) {
-    const cond = f.showIf ? 'conditional-field" data-show-if="' + f.showIf.field + '" data-show-value="' + f.showIf.value : '';
+    const cond = f.showIf ? ` conditional-field" data-show-if="${f.showIf.field}" data-show-value="${f.showIf.value}` : '';
     const req = f.required ? 'required' : '';
     let inp = '';
-    if (f.type === 'text' || f.type === 'number') inp = '<input type="' + f.type + '" class="text-input" id="' + f.id + '">';
-    else if (f.type === 'textarea') inp = '<textarea class="textarea-input" id="' + f.id + '"></textarea>';
-    else if (f.type === 'select') inp = '<select class="select-input" id="' + f.id + '"><option value="">Select...</option>' + (f.options || []).map(o => '<option value="' + o + '">' + o + '</option>').join('') + '</select>';
-    else if (f.type === 'yesno') inp = '<div class="toggle-group"><button type="button" class="toggle-btn yes" data-field="' + f.id + '" data-value="YES">YES</button><button type="button" class="toggle-btn no" data-field="' + f.id + '" data-value="NO">NO</button></div>';
-    else if (f.type === 'multiselect') inp = '<div class="checkbox-grid" data-field="' + f.id + '">' + (f.options || []).map(o => '<div class="checkbox-item" data-value="' + o + '"><span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span>' + o + '</span></div>').join('') + '</div>';
-    return '<div class="field-group ' + cond + '"><label class="field-label ' + req + '">' + f.label + '</label>' + inp + '</div>';
+    if (f.type === 'text' || f.type === 'number') inp = `<input type="${f.type}" class="text-input" id="${f.id}">`;
+    else if (f.type === 'textarea') inp = `<textarea class="textarea-input" id="${f.id}"></textarea>`;
+    else if (f.type === 'select') inp = `<select class="select-input" id="${f.id}"><option value="">Select...</option>${(f.options||[]).map(o => `<option value="${o}">${o}</option>`).join('')}</select>`;
+    else if (f.type === 'yesno') inp = `<div class="toggle-group"><button type="button" class="toggle-btn yes" data-field="${f.id}" data-value="YES">YES</button><button type="button" class="toggle-btn no" data-field="${f.id}" data-value="NO">NO</button></div>`;
+    else if (f.type === 'multiselect') inp = `<div class="checkbox-grid" data-field="${f.id}">${(f.options||[]).map(o => `<div class="checkbox-item" data-value="${o}"><span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span><span>${o}</span></div>`).join('')}</div>`;
+    return `<div class="field-group${cond}"><label class="field-label ${req}">${f.label}</label>${inp}</div>`;
 }
 
 function setupFormListeners() {
-    document.querySelectorAll('.toggle-btn').forEach(b => b.addEventListener('click', () => {
-        b.parentElement.querySelectorAll('.toggle-btn').forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
-        formData[b.dataset.field] = b.dataset.value;
-        document.querySelectorAll('[data-show-if="' + b.dataset.field + '"]').forEach(el => el.classList.toggle('visible', el.dataset.showValue === b.dataset.value));
-    }));
-    
-    // Fixed checkbox handler
-    document.querySelectorAll('.checkbox-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.classList.toggle('checked');
-        });
+    document.querySelectorAll('.toggle-btn').forEach(b => b.onclick = function() {
+        this.parentElement.querySelectorAll('.toggle-btn').forEach(x => x.classList.remove('active'));
+        this.classList.add('active');
+        formData[this.dataset.field] = this.dataset.value;
+        document.querySelectorAll(`[data-show-if="${this.dataset.field}"]`).forEach(el => el.classList.toggle('visible', el.dataset.showValue === this.dataset.value));
+    });
+    document.querySelectorAll('.checkbox-item').forEach(item => item.onclick = function(e) {
+        e.preventDefault();
+        this.classList.toggle('checked');
     });
 }
 
 function prefillForm(v) {
-    if (!v) return;
     formData = { ...v };
     fieldConfig.forEach(f => {
         const val = v[f.id]; if (!val) return;
         const el = document.getElementById(f.id);
         if (['text','number','textarea','select'].includes(f.type) && el) el.value = val;
         else if (f.type === 'yesno') {
-            const btn = document.querySelector('[data-field="' + f.id + '"][data-value="' + val + '"]');
+            const btn = document.querySelector(`[data-field="${f.id}"][data-value="${val}"]`);
             if (btn) { btn.parentElement.querySelectorAll('.toggle-btn').forEach(x => x.classList.remove('active')); btn.classList.add('active'); }
-            document.querySelectorAll('[data-show-if="' + f.id + '"]').forEach(el => el.classList.toggle('visible', el.dataset.showValue === val));
+            document.querySelectorAll(`[data-show-if="${f.id}"]`).forEach(el => el.classList.toggle('visible', el.dataset.showValue === val));
         } else if (f.type === 'multiselect' && val) {
             const vals = val.split(', ');
-            const grid = document.querySelector('[data-field="' + f.id + '"]');
-            if (grid) grid.querySelectorAll('.checkbox-item').forEach(item => {
-                if (vals.includes(item.dataset.value)) {
-                    item.classList.add('checked');
-                }
+            document.querySelectorAll(`[data-field="${f.id}"] .checkbox-item`).forEach(item => {
+                if (vals.includes(item.dataset.value)) item.classList.add('checked');
             });
         }
     });
@@ -508,29 +484,22 @@ function prefillForm(v) {
 
 function toggleSection(h) { h.classList.toggle('collapsed'); h.nextElementSibling.classList.toggle('collapsed'); }
 
-// PHOTOS - more aggressive compression
 function handlePhotos(input) {
     Array.from(input.files).forEach(file => {
         const r = new FileReader();
-        r.onload = e => {
-            // Compress to 600px max, 50% quality
-            compressImage(e.target.result, 600, 0.5, compressed => {
-                photos.push({ data: compressed });
-                updatePhotoUI();
-            });
-        };
+        r.onload = e => compressImage(e.target.result, 500, 0.4, img => { photos.push(img); updatePhotoUI(); });
         r.readAsDataURL(file);
     });
     input.value = '';
 }
 
-function compressImage(dataUrl, maxW, quality, cb) {
+function compressImage(dataUrl, maxSize, quality, cb) {
     const img = new Image();
     img.onload = () => {
         const canvas = document.createElement('canvas');
         let w = img.width, h = img.height;
-        if (w > maxW) { h = (maxW / w) * h; w = maxW; }
-        if (h > maxW) { w = (maxW / h) * w; h = maxW; }
+        if (w > h && w > maxSize) { h = h * maxSize / w; w = maxSize; }
+        else if (h > maxSize) { w = w * maxSize / h; h = maxSize; }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         cb(canvas.toDataURL('image/jpeg', quality));
@@ -540,27 +509,16 @@ function compressImage(dataUrl, maxW, quality, cb) {
 
 function updatePhotoUI() {
     document.getElementById('photo-count-badge').textContent = photos.length;
-    document.getElementById('photo-previews').innerHTML = photos.map((p, i) => '<div class="photo-preview"><img src="' + p.data + '"><button class="photo-remove" onclick="removePhoto(' + i + ')">✕</button></div>').join('');
-    document.getElementById('photo-note').textContent = photos.length ? photos.length + ' photo(s) ready' : '';
+    document.getElementById('photo-previews').innerHTML = photos.map((p,i) => `<div class="photo-preview"><img src="${p}"><button class="photo-remove" onclick="photos.splice(${i},1);updatePhotoUI()">✕</button></div>`).join('');
+    document.getElementById('photo-note').textContent = photos.length ? `${photos.length} photo(s)` : '';
 }
 
-function removePhoto(i) {
-    photos.splice(i, 1);
-    updatePhotoUI();
-}
-
-// SUBMIT - form first, then photos one by one
 function collectFormData() {
     const data = { ...formData };
     document.querySelectorAll('.text-input, .textarea-input, .select-input').forEach(inp => { if (inp.id) data[inp.id] = inp.value; });
-    
-    // Fixed multiselect collection
     document.querySelectorAll('.checkbox-grid').forEach(grid => {
-        const checked = Array.from(grid.querySelectorAll('.checkbox-item.checked')).map(item => item.dataset.value);
-        data[grid.dataset.field] = checked.join(', ');
+        data[grid.dataset.field] = Array.from(grid.querySelectorAll('.checkbox-item.checked')).map(i => i.dataset.value).join(', ');
     });
-    
-    data.timestamp = new Date().toISOString();
     return data;
 }
 
@@ -578,59 +536,43 @@ async function submitVisit() {
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner"></div> Saving...';
     
-    const data = collectFormData();
-    data.is_new_store = isNewStore;
-    if (!isNewStore) data.store_code = currentStore.code;
-    
-    // Step 1: Submit form data (no photos)
-    const result = await apiCall('addVisit', data);
-    
-    if (!result?.success) {
-        showToast('Error: ' + (result?.error || 'Failed'), 'error');
-        btn.disabled = false;
-        btn.innerHTML = 'Submit Visit';
-        return;
-    }
-    
-    const storeCode = result.storeCode || currentStore?.code;
-    
-    // Step 2: Upload photos one by one
-    let uploadedCount = 0;
-    if (photos.length > 0) {
-        btn.innerHTML = '<div class="spinner"></div> Uploading photos...';
+    try {
+        const data = collectFormData();
+        data.is_new_store = isNewStore;
+        data.timestamp = new Date().toISOString();
+        if (!isNewStore) data.store_code = currentStore.code;
+        if (photos.length) data.photos = photos;
         
-        for (let i = 0; i < photos.length; i++) {
-            btn.innerHTML = '<div class="spinner"></div> Photo ' + (i + 1) + '/' + photos.length;
-            const photoResult = await uploadPhoto(storeCode, photos[i].data);
-            if (photoResult?.success) uploadedCount++;
+        const result = await apiPost('addVisit', data);
+        
+        if (result?.success) {
+            const code = result.storeCode || currentStore?.code;
+            if (isNewStore) stores.push({ code, name: data.business_name, location: data.store_location || data.address, type: data.business_type });
+            data.store_code = code;
+            data.photo_count = result.photoCount || 0;
+            visits.unshift(data);
+            
+            showToast(`Saved!${result.photoCount ? ` + ${result.photoCount} photos` : ''}`, 'success');
+            setTimeout(() => {
+                showScreen('select');
+                document.getElementById('total-stores').textContent = stores.length;
+                document.getElementById('total-visits').textContent = visits.length;
+            }, 1000);
+        } else {
+            showToast('Error: ' + (result?.error || 'Failed'), 'error');
         }
+    } catch (e) {
+        console.error(e);
+        showToast('Error: ' + e.message, 'error');
     }
-    
-    // Update local state
-    if (isNewStore) {
-        stores.push({ code: storeCode, name: data.business_name, location: data.store_location || data.address, type: data.business_type });
-    }
-    data.store_code = storeCode;
-    data.photo_count = uploadedCount;
-    visits.unshift(data);
-    
-    const msg = uploadedCount > 0 ? 'Saved + ' + uploadedCount + ' photos!' : 'Saved!';
-    showToast(msg, 'success');
-    
-    setTimeout(() => {
-        showScreen('select');
-        document.getElementById('total-stores').textContent = stores.length;
-        document.getElementById('total-visits').textContent = visits.length;
-    }, 1000);
     
     btn.disabled = false;
     btn.innerHTML = 'Submit Visit';
 }
 
-// ADMIN
 function toggleAdmin() { document.getElementById('admin-panel').classList.toggle('open'); document.getElementById('admin-overlay').classList.toggle('open'); }
 function showAdminTab(tab, btn) { document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active')); btn.classList.add('active'); document.getElementById('admin-' + tab).classList.add('active'); }
-function toggleOptionsField() { document.getElementById('options-row').style.display = ['select', 'multiselect'].includes(document.getElementById('new-field-type').value) ? 'block' : 'none'; }
+function toggleOptionsField() { document.getElementById('options-row').style.display = ['select','multiselect'].includes(document.getElementById('new-field-type').value) ? 'block' : 'none'; }
 
 function renderFieldConfigList() {
     const c = document.getElementById('field-config-list');
@@ -638,18 +580,21 @@ function renderFieldConfigList() {
     fieldConfig.forEach(f => { if (!grouped[f.section]) grouped[f.section] = []; grouped[f.section].push(f); });
     c.innerHTML = Object.entries(grouped).map(([s, fields]) => {
         const m = sectionMeta[s] || { icon: '📋', title: s };
-        return '<div class="section-group"><div class="section-group-title">' + m.icon + ' ' + m.title + '</div>' + fields.map(f => '<div class="field-config-item"><div class="field-info"><div class="field-name">' + f.label + '</div><div class="field-meta">' + f.type + '</div></div><div class="field-toggle ' + (f.active ? 'active' : '') + '" onclick="toggleFieldActive(\'' + f.id + '\')"></div></div>').join('') + '</div>';
+        return `<div class="section-group"><div class="section-group-title">${m.icon} ${m.title}</div>${fields.map(f => `<div class="field-config-item"><div class="field-info"><div class="field-name">${f.label}</div><div class="field-meta">${f.type}</div></div><div class="field-toggle ${f.active ? 'active' : ''}" onclick="toggleFieldActive('${f.id}')"></div></div>`).join('')}</div>`;
     }).join('');
 }
 
-function toggleFieldActive(id) { const f = fieldConfig.find(x => x.id === id); if (f) { f.active = !f.active; renderFieldConfigList(); showToast(f.label + (f.active ? ' on' : ' off')); } }
+function toggleFieldActive(id) {
+    const f = fieldConfig.find(x => x.id === id);
+    if (f) { f.active = !f.active; renderFieldConfigList(); showToast(f.label + (f.active ? ' on' : ' off')); }
+}
 
 function addNewField() {
     const label = document.getElementById('new-field-label').value.trim();
     if (!label) { showToast('Enter label', 'error'); return; }
     const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_');
     if (fieldConfig.find(f => f.id === id)) { showToast('Exists', 'error'); return; }
-    const nf = { id, label, type: document.getElementById('new-field-type').value, section: document.getElementById('new-field-section').value, required: false, active: true };
+    const nf = { id, label, type: document.getElementById('new-field-type').value, section: document.getElementById('new-field-section').value, active: true };
     const opts = document.getElementById('new-field-options').value.trim();
     if (opts) nf.options = opts.split(',').map(o => o.trim());
     fieldConfig.push(nf);
@@ -657,11 +602,16 @@ function addNewField() {
     document.getElementById('new-field-options').value = '';
     renderFieldConfigList();
     showToast('Added!', 'success');
-    document.querySelectorAll('.admin-tab')[0].click();
 }
 
-function showToast(msg, type) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast ' + (type || '') + ' show'; setTimeout(() => t.classList.remove('show'), 3000); }
-document.getElementById('visit-modal').addEventListener('click', e => { if (e.target.id === 'visit-modal') closeModal(); });
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (type || '') + ' show';
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+document.getElementById('visit-modal').onclick = e => { if (e.target.id === 'visit-modal') closeModal(); };
 </script>
 </body>
 </html>
