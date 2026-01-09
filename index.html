@@ -402,11 +402,13 @@ const CONFIG = {
     UNIT_NAME: 'IRELAND',
     UNIT_CODE: 'IE',
     STORE_PREFIX: 'IVG-IE-',
-    PIN: '8888'  // Change this for each deployment
+    PIN: '1234',       // User login PIN
+    ADMIN_PIN: '2233'  // Admin panel PIN
 };
 
 // ============ STATE ============
 let isLoggedIn = false;
+let isAdminUnlocked = false;
 let currentStore = null;
 let isNewStore = false;
 let lastVisitData = null;
@@ -452,6 +454,7 @@ function attemptLogin() {
 
 function logout() {
     isLoggedIn = false;
+    isAdminUnlocked = false;
     document.getElementById('app-container').classList.remove('active');
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-pin').value = '';
@@ -490,11 +493,13 @@ async function initApp() {
         
         if (storesRes?.stores) stores = storesRes.stores;
         if (visitsRes?.visits) visits = visitsRes.visits;
+        // Use server config if it exists, otherwise use defaults
         if (configRes?.fields && configRes.fields.length > 0) {
             fieldConfig = configRes.fields;
         } else {
-            // Default fields if none in sheet
+            // First time setup - use defaults and save to server
             fieldConfig = getDefaultFields();
+            saveConfigToServer();
         }
         
         document.getElementById('total-stores').textContent = statsRes?.totalStores || 0;
@@ -511,22 +516,54 @@ async function initApp() {
 
 function getDefaultFields() {
     return [
+        // Business section
         { id: 'business_name', label: 'Business Name', type: 'text', section: 'business', required: true, active: true },
         { id: 'business_type', label: 'Business Type', type: 'select', section: 'business', required: true, active: true, options: ['Vape Store','Vape Chain','FMCG','Wholesaler','Convenience','Phone Repair'] },
         { id: 'address', label: 'Address', type: 'text', section: 'business', required: true, active: true },
+        { id: 'postcode', label: 'Post Code', type: 'text', section: 'business', active: true },
         { id: 'store_location', label: 'Town/Area', type: 'text', section: 'business', active: true },
         { id: 'contact', label: 'Contact', type: 'text', section: 'business', active: true },
         { id: 'phone', label: 'Phone', type: 'text', section: 'business', active: true },
-        { id: 'main_supplier', label: 'Main Supplier', type: 'select', section: 'business', active: true, options: ['HALE','CLAYTON','E-CIRETTE','JFC','NEWVEND','OTHER'] },
+        { id: 'email', label: 'Email', type: 'text', section: 'business', active: true },
+        { id: 'main_supplier', label: 'Main Supplier', type: 'select', section: 'business', active: true, options: ['HALE','CLAYTON','E-CIRETTE','JFC','NEWVEND','CHINMARA','UK WHOLESALE','FLEMING','SMOKEGREEN','AMPERSAND','KADONA','OTHER'] },
+        
+        // Products section
         { id: 'has_ivg2400', label: 'Has IVG 2400?', type: 'yesno', section: 'products', active: true },
         { id: 'ivg2400_sku', label: '2400 SKU Count', type: 'number', section: 'products', active: true },
         { id: 'has_smart5500', label: 'Has SMART 5500?', type: 'yesno', section: 'products', active: true },
-        { id: 'smart5500_sku', label: '5500 SKU Count', type: 'number', section: 'products', active: true },
+        { id: 'smart_sku', label: '5500 SKU Count', type: 'number', section: 'products', active: true },
         { id: 'has_pro12', label: 'Has PRO-12?', type: 'yesno', section: 'products', active: true },
-        { id: 'pro12_sku', label: 'PRO-12 SKU Count', type: 'number', section: 'products', active: true },
+        { id: 'pro_sku', label: 'PRO-12 SKU Count', type: 'number', section: 'products', active: true },
         { id: 'has_savr', label: 'Has IVG SAVR?', type: 'yesno', section: 'products', active: true },
+        { id: 'has_10ml_salts', label: 'Has 10ML Salts?', type: 'yesno', section: 'products', active: true },
+        { id: 'has_5050', label: 'Has 50/50?', type: 'yesno', section: 'products', active: true },
+        
+        // Gantry section
         { id: 'gantry_share', label: 'Gantry % IVG', type: 'number', section: 'gantry', active: true },
+        { id: 'ivg2400_units_wide', label: '2400 Units Wide', type: 'number', section: 'gantry', active: true },
+        { id: 'smart5500_units_wide', label: '5500 Units Wide', type: 'number', section: 'gantry', active: true },
+        { id: 'ivg2400_placement', label: '2400 Placement', type: 'multiselect', section: 'gantry', active: true, options: ['Counter','Eye Level','Top','Middle','Bottom'] },
+        
+        // Sales section
+        { id: 'devices_daily_sales', label: 'Devices/Day', type: 'number', section: 'sales', active: true },
+        { id: 'liquids_daily_sales', label: 'Liquids/Day', type: 'number', section: 'sales', active: true },
+        
+        // Orders section
         { id: 'order_placed', label: 'Order Placed?', type: 'yesno', section: 'orders', active: true },
+        { id: 'devices_order_volume', label: 'Order Volume', type: 'number', section: 'orders', active: true },
+        { id: 'devices_order_frequency', label: 'Order Frequency', type: 'select', section: 'orders', active: true, options: ['DAILY','WEEKLY','10 DAYS','14 DAYS','30 DAYS'] },
+        
+        // POS section
+        { id: 'pos_allowed', label: 'POS Allowed?', type: 'yesno', section: 'pos', active: true },
+        { id: 'has_brand_pos', label: 'Has Brand POS?', type: 'yesno', section: 'pos', active: true },
+        { id: 'brand_pos_required', label: 'POS Needed', type: 'multiselect', section: 'pos', active: true, options: ['Door Signs','Floor Mats','Counter Mats','Shelf Strips','Wobblers'] },
+        { id: 'merch_request', label: 'Merch Request', type: 'text', section: 'pos', active: true },
+        
+        // Competitors section
+        { id: 'devices_competitor1', label: 'Top Device Competitor', type: 'select', section: 'competitors', active: true, options: ['LOST MARY','VUSE','ELF BAR','HAYATTI','SKE','GOLD BAR'] },
+        { id: 'liquids_competitor1', label: 'Top Liquid Competitor', type: 'select', section: 'competitors', active: true, options: ['RIOT','DINNER LADY','VAMPIRE VAPE','NASTY JUICE','ELFLIQ','OTHER'] },
+        
+        // Notes section
         { id: 'notes', label: 'Notes', type: 'textarea', section: 'notes', active: true }
     ];
 }
@@ -886,8 +923,21 @@ async function submitVisit() {
 
 // ============ ADMIN PANEL ============
 function toggleAdmin() {
-    document.getElementById('admin-panel').classList.toggle('open');
-    document.getElementById('admin-overlay').classList.toggle('open');
+    const panel = document.getElementById('admin-panel');
+    const overlay = document.getElementById('admin-overlay');
+    
+    // If opening and not unlocked, prompt for PIN
+    if (!panel.classList.contains('open') && !isAdminUnlocked) {
+        const pin = prompt('Enter Admin PIN:');
+        if (pin !== CONFIG.ADMIN_PIN) {
+            if (pin !== null) showToast('Incorrect PIN', 'error');
+            return;
+        }
+        isAdminUnlocked = true;
+    }
+    
+    panel.classList.toggle('open');
+    overlay.classList.toggle('open');
 }
 
 function showAdminTab(tab, btn) {
