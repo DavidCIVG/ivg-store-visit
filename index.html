@@ -743,9 +743,12 @@ function renderForm(showBusiness) {
     const container = document.getElementById('form-sections-container');
     container.innerHTML = '';
     
+    // System fields that should never appear in form (auto-filled)
+    const systemFields = ['rep_name'];
+    
     // Group fields by section
     const sections = {};
-    fieldConfig.filter(f => f.active).forEach(f => {
+    fieldConfig.filter(f => f.active && !systemFields.includes(f.id)).forEach(f => {
         if (!sections[f.section]) sections[f.section] = [];
         sections[f.section].push(f);
     });
@@ -1008,9 +1011,12 @@ function showAdminTab(tab, btn) {
 function renderFieldConfigList() {
     const container = document.getElementById('field-config-list');
     
-    // Group by section
+    // System fields that shouldn't be shown in admin
+    const systemFields = ['rep_name'];
+    
+    // Group by section (excluding system fields)
     const grouped = {};
-    fieldConfig.forEach(f => {
+    fieldConfig.filter(f => !systemFields.includes(f.id)).forEach(f => {
         if (!grouped[f.section]) grouped[f.section] = [];
         grouped[f.section].push(f);
     });
@@ -1266,4 +1272,3 @@ document.getElementById('visit-modal').onclick = e => { if (e.target.id === 'vis
 </script>
 </body>
 </html>
-
