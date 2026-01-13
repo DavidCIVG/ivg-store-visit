@@ -315,12 +315,32 @@
         <div class="admin-content">
             <div class="admin-tabs">
                 <button class="admin-tab active" onclick="showAdminTab('fields',this)">Fields</button>
+                <button class="admin-tab" onclick="showAdminTab('users',this)">Users</button>
                 <button class="admin-tab" onclick="showAdminTab('add',this)">+ Add</button>
             </div>
             
             <!-- Fields List -->
             <div id="admin-fields" class="admin-section active">
                 <div id="field-config-list"></div>
+            </div>
+            
+            <!-- Users List -->
+            <div id="admin-users" class="admin-section">
+                <div class="field-form">
+                    <h3>+ Add User</h3>
+                    <div class="form-row">
+                        <label>Name</label>
+                        <input type="text" id="new-user-name" placeholder="e.g. Sarah">
+                    </div>
+                    <div class="form-row">
+                        <label>PIN (4-6 digits)</label>
+                        <input type="text" id="new-user-pin" placeholder="e.g. 4521" maxlength="6" inputmode="numeric">
+                    </div>
+                    <div class="form-btns">
+                        <button class="form-btn primary" onclick="addNewUser()">Add User</button>
+                    </div>
+                </div>
+                <div id="users-list"></div>
             </div>
             
             <!-- Add/Edit Field -->
@@ -402,13 +422,13 @@ const CONFIG = {
     UNIT_NAME: 'IRELAND',
     UNIT_CODE: 'IE',
     STORE_PREFIX: 'IVG-IE-',
-    PIN: '1234',       // User login PIN
-    ADMIN_PIN: '2233'  // Admin panel PIN
+    ADMIN_PIN: '2233'  // Admin panel PIN (separate from user login)
 };
 
 // ============ STATE ============
 let isLoggedIn = false;
 let isAdminUnlocked = false;
+let currentUser = null; // { pin, name }
 let currentStore = null;
 let isNewStore = false;
 let lastVisitData = null;
@@ -417,6 +437,7 @@ let formData = {};
 let stores = [];
 let visits = [];
 let fieldConfig = [];
+let users = [];
 let deleteFieldId = null;
 
 const sectionMeta = {
@@ -438,23 +459,45 @@ document.getElementById('login-pin').addEventListener('keyup', e => {
     if (e.key === 'Enter') attemptLogin();
 });
 
-function attemptLogin() {
+async function attemptLogin() {
     const pin = document.getElementById('login-pin').value;
-    if (pin === CONFIG.PIN) {
-        isLoggedIn = true;
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-container').classList.add('active');
-        initApp();
-    } else {
+    const btn = document.getElementById('login-btn');
+    
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+    
+    try {
+        const result = await apiGet('validatePin', { pin });
+        
+        if (result?.valid) {
+            isLoggedIn = true;
+            currentUser = { pin, name: result.name };
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-container').classList.add('active');
+            initApp();
+        } else {
+            document.getElementById('login-error').classList.add('show');
+            document.getElementById('login-pin').value = '';
+            setTimeout(() => document.getElementById('login-error').classList.remove('show'), 2000);
+        }
+    } catch(e) {
+        console.error('Login error:', e);
+        document.getElementById('login-error').textContent = 'Connection error';
         document.getElementById('login-error').classList.add('show');
-        document.getElementById('login-pin').value = '';
-        setTimeout(() => document.getElementById('login-error').classList.remove('show'), 2000);
+        setTimeout(() => {
+            document.getElementById('login-error').textContent = 'Incorrect PIN';
+            document.getElementById('login-error').classList.remove('show');
+        }, 2000);
     }
+    
+    btn.disabled = false;
+    btn.textContent = 'Login';
 }
 
 function logout() {
     isLoggedIn = false;
     isAdminUnlocked = false;
+    currentUser = null;
     document.getElementById('app-container').classList.remove('active');
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-pin').value = '';
@@ -484,15 +527,17 @@ async function initApp() {
     window.addEventListener('offline', () => document.getElementById('offline-banner').classList.add('show'));
     
     try {
-        const [storesRes, visitsRes, statsRes, configRes] = await Promise.all([
+        const [storesRes, visitsRes, statsRes, configRes, usersRes] = await Promise.all([
             apiGet('getStores'),
             apiGet('getVisits'),
             apiGet('getStats'),
-            apiGet('getConfig')
+            apiGet('getConfig'),
+            apiGet('getUsers')
         ]);
         
         if (storesRes?.stores) stores = storesRes.stores;
         if (visitsRes?.visits) visits = visitsRes.visits;
+        if (usersRes?.users) users = usersRes.users;
         // Use server config if it exists, otherwise use defaults
         if (configRes?.fields && configRes.fields.length > 0) {
             fieldConfig = configRes.fields;
@@ -511,6 +556,7 @@ async function initApp() {
     
     renderStoreList();
     renderFieldConfigList();
+    renderUsersList();
     document.getElementById('loading-overlay').style.display = 'none';
 }
 
@@ -881,6 +927,7 @@ async function submitVisit() {
         const data = collectFormData();
         data.is_new_store = isNewStore;
         data.timestamp = new Date().toISOString();
+        data.rep_name = currentUser?.name || 'Unknown';
         if (!isNewStore) data.store_code = currentStore.code;
         if (photos.length) data.photos = photos;
         
@@ -1109,6 +1156,103 @@ async function saveConfigToServer() {
     }
 }
 
+// ============ USER MANAGEMENT ============
+function renderUsersList() {
+    const container = document.getElementById('users-list');
+    if (!container) return;
+    
+    if (!users.length) {
+        container.innerHTML = '<div class="empty-state"><h3>No users</h3></div>';
+        return;
+    }
+    
+    container.innerHTML = users.map(u => `
+        <div class="field-config-item">
+            <div class="field-config-top">
+                <div>
+                    <div class="field-config-name">${u.name}</div>
+                    <div class="field-config-meta">PIN: ${u.pin}</div>
+                </div>
+                <div class="field-config-actions">
+                    <button class="field-action-btn toggle ${u.active ? 'active' : ''}" onclick="toggleUserActive('${u.pin}')" title="Toggle">
+                        ${u.active ? '✓' : '○'}
+                    </button>
+                    <button class="field-action-btn delete" onclick="deleteUserConfirm('${u.pin}')" title="Delete">🗑️</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function addNewUser() {
+    const name = document.getElementById('new-user-name').value.trim();
+    const pin = document.getElementById('new-user-pin').value.trim();
+    
+    if (!name) {
+        showToast('Enter a name', 'error');
+        return;
+    }
+    if (!pin || pin.length < 4) {
+        showToast('PIN must be 4-6 digits', 'error');
+        return;
+    }
+    if (!/^\d+$/.test(pin)) {
+        showToast('PIN must be numbers only', 'error');
+        return;
+    }
+    
+    try {
+        const result = await apiPost('addUser', { name, pin });
+        if (result?.success) {
+            users.push({ pin, name, active: true });
+            renderUsersList();
+            document.getElementById('new-user-name').value = '';
+            document.getElementById('new-user-pin').value = '';
+            showToast('User added', 'success');
+        } else {
+            showToast(result?.error || 'Failed to add user', 'error');
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+async function toggleUserActive(pin) {
+    const user = users.find(u => u.pin === pin);
+    if (!user) return;
+    
+    const newActive = !user.active;
+    
+    try {
+        const result = await apiPost('updateUser', { oldPin: pin, pin, name: user.name, active: newActive });
+        if (result?.success) {
+            user.active = newActive;
+            renderUsersList();
+            showToast(`${user.name} ${newActive ? 'enabled' : 'disabled'}`);
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+async function deleteUserConfirm(pin) {
+    const user = users.find(u => u.pin === pin);
+    if (!user) return;
+    
+    if (!confirm(`Delete user "${user.name}"?`)) return;
+    
+    try {
+        const result = await apiPost('deleteUser', { pin });
+        if (result?.success) {
+            users = users.filter(u => u.pin !== pin);
+            renderUsersList();
+            showToast('User deleted');
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
 // ============ UTILITIES ============
 function showToast(msg, type) {
     const t = document.getElementById('toast');
@@ -1122,3 +1266,4 @@ document.getElementById('visit-modal').onclick = e => { if (e.target.id === 'vis
 </script>
 </body>
 </html>
+
