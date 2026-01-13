@@ -1070,7 +1070,8 @@ function editField(id) {
     document.getElementById('field-section').value = f.section;
     toggleOptionsRow();
     
-    showAdminTab('add', document.querySelectorAll('.admin-tab')[1]);
+    // Switch to the Add tab (index 2 now: Fields=0, Users=1, Add=2)
+    showAdminTab('add', document.querySelectorAll('.admin-tab')[2]);
 }
 
 function deleteField(id) {
